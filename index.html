@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EchoMasters - Premium Ultrasound Education</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.22.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.22",
+        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3"
+      }
+    }
+    </script>
+    <style>
+      :root {
+        --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      html, [data-theme="Classic"] {
+        --gold: #d4af37;
+        --gold-dim: rgba(212, 175, 55, 0.2);
+        --gold-light: #f4e4bc;
+        --accent: #d4af37;
+        --accent-light: #f4e4bc;
+        --accent-glow: rgba(212, 175, 55, 0.1);
+        --bg-primary: #050505;
+        --bg-secondary: #0a0a0a;
+        --card-border: rgba(255, 255, 255, 0.1);
+        --text-shadow: none;
+        --box-glow: none;
+      }
+
+      [data-theme="Neon"] {
+        --gold: #00f3ff; /* Electric Cyan */
+        --gold-dim: rgba(0, 243, 255, 0.15);
+        --gold-light: #bcfeff;
+        --accent: #ff0099; /* Neon Magenta */
+        --accent-light: #ffb3d9;
+        --accent-glow: rgba(0, 243, 255, 0.2);
+        --bg-primary: #020204;
+        --bg-secondary: #050507;
+        --card-border: rgba(0, 243, 255, 0.3);
+        --text-shadow: 0 0 10px rgba(0, 243, 255, 0.6), 0 0 20px rgba(0, 243, 255, 0.3);
+        --box-glow: 0 0 15px rgba(0, 243, 255, 0.15), inset 0 0 20px rgba(0, 243, 255, 0.05);
+      }
+      
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-primary);
+        color: #e5e5e5;
+        overflow-x: hidden;
+      }
+
+      /* Global Noise Texture */
+      body::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 9998;
+        mix-blend-mode: overlay;
+      }
+
+      /* Scanlines for Neon Theme */
+      [data-theme="Neon"] body::before {
+        content: " ";
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+        z-index: 9999;
+        background-size: 100% 2px, 3px 100%;
+        pointer-events: none;
+      }
+
+      /* Utility Classes for Neon Effects */
+      .neon-text-glow {
+        text-shadow: var(--text-shadow);
+      }
+      
+      .neon-box-glow {
+        box-shadow: var(--box-glow);
+      }
+
+      /* Custom Selection */
+      ::selection {
+        background-color: var(--gold-dim);
+        color: #ffffff;
+      }
+
+      /* Scrollbar Styling */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.4);
+      }
+
+      .flashcard-container {
+        perspective: 1000px;
+      }
+      .flashcard {
+        transform-style: preserve-3d;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .flashcard.is-flipped {
+        transform: rotateY(180deg);
+      }
+      .flashcard-front, .flashcard-back {
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+      }
+      
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 22px;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #333;
+        transition: .4s;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.2);
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: var(--gold);
+        border-color: var(--gold);
+      }
+      input:checked + .slider:before {
+        transform: translateX(18px);
+        background-color: black;
+      }
+
+      .animate-pulse-narrate {
+          animation: pulse-narrate 1.5s ease-in-out infinite;
+      }
+      
+      @keyframes pulse-narrate {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          50% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+      }
+
+      /* Graticule Background */
+      .graticule-bg {
+        background-color: #050505;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
+        background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+      }
+
+      /* Accessible Focus Ring */
+      *:focus-visible {
+        outline: 2px solid var(--gold) !important;
+        outline-offset: 2px !important;
+      }
+      *:focus {
+        outline: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
